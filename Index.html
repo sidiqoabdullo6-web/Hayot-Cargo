@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hayot Cargo</title>
+
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase App & Firestore SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+:root {
+    --primary: #10b981;
+    --primary-dark: #059669;
+    --primary-light: rgba(16, 185, 129, 0.12);
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.phone-frame {
+    width: 100%;
+    max-width: 430px;
+    height: 100vh;
+    max-height: 880px;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@media(min-width: 480px) {
+    .phone-frame {
+        height: 90vh;
+        border-radius: 40px;
+        border: 8px solid #1e293b;
+    }
+}
+
+.screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    transition: 0.3s ease;
+}
+
+.screen.hidden { display: none; }
+
+/* SPLASH */
+#splashScreen {
+    background: var(--primary);
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 100;
+}
+#splashScreen h1 { font-size: 32px; font-weight: 700; letter-spacing: 1px; }
+#splashScreen p { font-size: 14px; opacity: 0.9; margin-top: 5px; letter-spacing: 3px; }
+
+/* AUTH SCREENS */
+.auth-screen {
+    padding: 30px 20px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: var(--card-bg);
+}
+.auth-icon {
+    width: 70px; height: 70px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 20px;
+}
+.auth-input {
+    width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border);
+    margin-bottom: 12px; font-size: 14px; background: var(--bg); color: var(--text); outline: none;
+}
+.pin-dots { display: flex; gap: 15px; margin: 25px 0; justify-content: center; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: var(--border); transition: 0.2s; }
+.dot.active { background: var(--primary); }
+
+.keypad {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    width: 100%; max-width: 280px; margin-top: 10px;
+}
+.key {
+    background: var(--bg); border: none; height: 50px; border-radius: 50%;
+    font-size: 18px; font-weight: 600; color: var(--text); cursor: pointer; transition: 0.2s;
+}
+.key:active { background: var(--primary-light); color: var(--primary); }
+
+/* HEADER */
+.app-header {
+    padding: 15px 20px;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+.user-profile-btn {
+    display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer;
+}
+.user-profile-btn i { font-size: 32px; color: var(--primary); }
+.user-profile-btn span { font-weight: 600; font-size: 15px; color: var(--text); }
+
+.app-body {
+    flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 90px;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* REFRESH SPINNER */
+.refresh-spinner {
+    text-align: center;
+    padding: 10px;
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 600;
+    display: none;
+}
+
+/* WALLET & CARDS */
+.wallet-card {
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.wallet-card h3 { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.wallet-card p { font-size: 12px; opacity: 0.9; }
+
+.main-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 15px;
+}
+.main-feature-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 15px;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 90px;
+}
+.main-feature-card i { font-size: 22px; color: var(--primary); margin-bottom: 8px; }
+.main-feature-card span { font-size: 13px; font-weight: 600; }
+.badge-new {
+    position: absolute; top: 10px; right: 10px;
+    background: #ef4444; color: white; font-size: 9px;
+    padding: 2px 6px; border-radius: 6px; font-weight: 700;
+}
+
+.shops-scroll {
+    display: flex; gap: 10px; overflow-x: auto; padding: 5px 0 15px 0;
+}
+.shop-item {
+    background: var(--card-bg); border: 1px solid var(--border);
+    padding: 10px 15px; border-radius: 14px; font-size: 12px;
+    font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+}
+
+.pvz-box {
+    background: var(--primary-light);
+    border: 1px solid var(--primary);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    cursor: pointer;
+}
+.pvz-box span { font-size: 13px; font-weight: 600; color: var(--primary-dark); }
+
+.address-box {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow);
+}
+.address-box h4 { font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--muted); }
+.address-row {
+    display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 10px; color: var(--muted);
+}
+.address-row b { color: var(--text); }
+
+.btn-primary {
+    background: var(--primary); color: white; border: none; width: 100%;
+    padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px;
+}
+
+/* SEARCH & ORDERS STYLES */
+.search-track-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+.search-track-box input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    outline: none;
+    font-size: 13px;
+    z-index: 250;
+}
+.search-track-box button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* PROFILE STYLES */
+.profile-section-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; margin: 15px 5px 8px 5px; letter-spacing: 0.5px;
+}
+.profile-card-group {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 15px; box-shadow: var(--shadow);
+}
+.profile-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    cursor: pointer; background: var(--card-bg); transition: 0.2s;
+}
+.profile-item:last-child { border-bottom: none; }
+.profile-item:active { background: var(--bg); }
+.profile-item-left { display: flex; align-items: center; gap: 12px; }
+.profile-item-left i { font-size: 16px; color: var(--primary); width: 20px; text-align: center; }
+.profile-item-left span { font-size: 14px; font-weight: 500; color: var(--text); }
+
+/* SELLER BANNER */
+.seller-banner {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    border-radius: 16px;
+    padding: 16px;
+    color: white;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+}
+.seller-banner-text h4 { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.seller-banner-text p { font-size: 11px; opacity: 0.9; margin-bottom: 10px; }
+.seller-btn {
+    background: white; color: #4f46e5; border: none; padding: 6px 14px;
+    border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+
+/* ORDER STATUS CARDS */
+.order-status-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 16px; padding: 15px; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+}
+.order-info h5 { font-size: 14px; margin-bottom: 3px; font-weight: 600; }
+.order-info p { font-size: 11px; color: var(--muted); }
+
+/* MARKET GRID */
+.market-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 15px;
+}
+.market-product-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+}
+.market-product-card .img-placeholder {
+    width: 100%;
+    height: 120px;
+    background: var(--bg);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* BOTTOM NAV */
+.bottom-nav {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 70px;
+    background: var(--card-bg); border-top: 1px solid var(--border);
+    display: flex; justify-content: space-around; align-items: center; z-index: 50;
+}
+.nav-link {
+    background: none; border: none; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; color: var(--muted); font-size: 11px; cursor: pointer; flex: 1;
+}
+.nav-link i { font-size: 18px; }
+.nav-link.active { color: var(--primary); }
+
+/* SUB-PAGES / MODALS */
+.app-modal {
+    position: absolute; inset: 0; background: var(--bg);
+    display: none; flex-direction: column; z-index: 200;
+}
+.app-modal.show { display: flex; }
+.sub-header {
+    padding: 15px 20px; background: var(--card-bg); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 15px; font-weight: 600; font-size: 16px;
+}
+.sub-header button { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text); }
+.sub-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+.empty-box {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; height: 70%; color: var(--muted);
+}
+.empty-box i { font-size: 60px; color: #cbd5e1; margin-bottom: 15px; }
+.empty-box h4 { font-size: 18px; color: var(--text); margin-bottom: 5px; }
+
+/* CUSTOM ALERT */
+.custom-alert-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; justify-content: center; align-items: center; z-index: 999; padding: 20px;
+}
+.custom-alert-overlay.show { display: flex; }
+.custom-alert-box {
+    background: var(--card-bg); border-radius: 20px; width: 100%; max-width: 320px;
+    padding: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.custom-alert-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+.custom-alert-msg { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+.custom-alert-buttons { display: flex; gap: 10px; }
+.custom-alert-btn {
+    flex: 1; padding: 10px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; border: none;
+}
+.btn-cancel { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.btn-ok { background: var(--primary); color: white; }
+
+/* TIMELINE STYLES */
+.timeline-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: var(--shadow);
+}
+.track-header-row {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
+}
+.track-title-text { font-size: 16px; font-weight: 700; color: var(--text); }
+.track-badge { background: var(--primary-light); color: var(--primary-dark); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; }
+.cargo-name-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--text); }
+.timeline { position: relative; padding-left: 25px; margin: 15px 0; }
+.timeline::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-item:last-child { margin-bottom: 0; }
+.timeline-dot { position: absolute; left: -25px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--card-bg); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; color: transparent; }
+.timeline-item.active .timeline-dot { background: var(--primary); border-color: var(--primary); color: white; }
+.timeline-title { font-size: 13px; font-weight: 700; color: var(--muted); }
+.timeline-item.active .timeline-title { color: var(--primary-dark); }
+.timeline-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.timeline-date { font-size: 11px; color: var(--primary); font-weight: 600; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+    
+    <!-- SPLASH -->
+    <div id="splashScreen" class="screen">
+        <h1>HAYOT CARGO</h1>
+        <p>FAST & RELIABLE</p>
+    </div>
+
+    <!-- ЭКРАНИ БАҚАЙДГИРӢ -->
+    <div id="regScreen" class="screen auth-screen hidden">
+        <div class="auth-icon"><i class="fa-solid fa-id-card"></i></div>
+        <h3 id="txtRegTitle" style="margin-bottom: 5px;">Воридшавӣ ба Hayot Cargo</h3>
+        <p id="txtRegDesc" style="font-size: 12px; color: var(--muted); margin-bottom: 20px;">Ному насаб, рақами телефон ва FC-кодро ворид кунед</p>
+        
+        <input type="text" id="regName" class="auth-input" placeholder="Ному насаб">
+        <input type="tel" id="regPhone" class="auth-input" placeholder="Рақами телефон (+992...)">
+        <input type="text" id="regFcCode" class="auth-input" placeholder="FC-код" style="text-transform: uppercase; font-weight: 700; color: var(--primary);">
+        
+        <button id="btnRegSubmit" class="btn-primary" onclick="checkClientInFirebase()">Санҷиш ва даромадан</button>
+    </div>
+
+    <!-- ЭКРАНИ PIN-КОД -->
+    <div id="pinScreen" class="screen auth-screen hidden">
+        <div class="auth-icon"><i class="fa-solid fa-lock"></i></div>
+        <h3 id="txtPinTitle">PIN-коди худро ворид кунед</h3>
+        <p id="txtPinDesc" style="font-size: 12px; color: var(--muted); margin: 5px 0 20px 0;">Ин код барои воридшавии оянда хизмат мекунад</p>
+        
+        <div class="pin-dots">
+            <div class="dot" id="d1"></div><div class="dot" id="d2"></div>
+            <div class="dot" id="d3"></div><div class="dot" id="d4"></div>
+        </div>
+        
+        <div class="keypad" id="keypadBox">
+            <button class="key" onclick="pressKey('1')">1</button>
+            <button class="key" onclick="pressKey('2')">2</button>
+            <button class="key" onclick="pressKey('3')">3</button>
+            <button class="key" onclick="pressKey('4')">4</button>
+            <button class="key" onclick="pressKey('5')">5</button>
+            <button class="key" onclick="pressKey('6')">6</button>
+            <button class="key" onclick="pressKey('7')">7</button>
+            <button class="key" onclick="pressKey('8')">8</button>
+            <button class="key" onclick="pressKey('9')">9</button>
+            <button class="key" onclick="pressKey('0')">0</button>
+            <button class="key" onclick="clearPin()"><i class="fa-solid fa-rotate-left"></i></button>
+        </div>
+        <div id="blockTimerBox" style="display:none; color:#ef4444; font-weight:700; margin-top:15px; font-size:14px;"></div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="screen hidden">
+        
+        <header class="app-header">
+            <button class="user-profile-btn" onclick="switchTab('tabProfile', document.querySelectorAll('.nav-link')[4])">
+                <i class="fa-solid fa-circle-user"></i>
+                <span id="headerUserName">Абдулло</span>
+            </button>
+        </header>
+
+        <div class="app-body" id="appBodyScroll">
+            <div id="refreshIndicator" class="refresh-spinner"><i class="fa-solid fa-spinner fa-spin"></i> <span id="txtRefresh">Навсозӣ истодааст...</span></div>
+
+            <!-- TAB 1: КАРГО -->
+            <div id="tabCargo" class="tab-content active">
+                <div class="wallet-card">
+                    <div>
+                        <p id="txtWalletTitle">Баланс ва бонусҳо</p>
+                        <h3>0,00 с.</h3>
+                    </div>
+                    <i class="fa-solid fa-wallet" style="font-size: 32px; opacity: 0.9;"></i>
+                </div>
+
+                <div class="main-grid-4">
+                    <div class="main-feature-card" onclick="openSubPage('qrSubPage')">
+                        <i class="fa-solid fa-qrcode"></i>
+                        <span id="txtMenuQr">Мой QR</span>
+                    </div>
+                    <div class="main-feature-card" onclick="openDeliveryModal()">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        <span id="txtMenuDelivery">Доставка до дома</span>
+                    </div>
+                    <div class="main-feature-card" onclick="openSubPage('calcSubPage')">
+                        <i class="fa-solid fa-calculator"></i>
+                        <span id="txtMenuCalc">Калькулятор</span>
+                    </div>
+                    <div class="main-feature-card" onclick="openSubPage('lessonsSubPage')">
+                        <i class="fa-solid fa-circle-play"></i>
+                        <span id="txtMenuLessons">Бесплатные уроки</span>
+                        <div class="badge-new">NEW</div>
+                    </div>
+                </div>
+
+                <div class="shops-scroll">
+                    <div class="shop-item"><i class="fa-solid fa-bag-shopping" style="color:#ef4444"></i> Pinduoduo</div>
+                    <div class="shop-item"><i class="fa-solid fa-cart-shopping" style="color:#f97316"></i> Taobao</div>
+                    <div class="shop-item"><i class="fa-solid fa-box" style="color:#000"></i> Poizon</div>
+                    <div class="shop-item"><i class="fa-solid fa-store" style="color:#ef4444"></i> 1688</div>
+                </div>
+
+                <!-- ПВЗ -->
+                <div class="pvz-box" onclick="openLocationSelector('pvz')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i>
+                        <span id="selectedPvzDisplay">ПВЗ: Душанбе</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--primary-dark);"></i>
+                </div>
+
+                <div class="address-box">
+                    <h4 id="txtCopyAddrTitle">Скопируйте адрес доставки</h4>
+                    <div class="address-row"><span id="txtYourId">Ваш ID:</span> <b id="displayFcId">FC0000000</b></div>
+                    <div class="address-row"><span id="txtPhoneLabel">Телефон:</span> <b id="displayPhone">900000000</b></div>
+                    <button id="btnCopyAll" class="btn-primary" onclick="copyAddress()">Скопировать всё сразу</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: МАРКЕТ -->
+            <div id="tabMarket" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer;" onclick="openSubPage('myStoreProductsSubPage')">
+                    <div>
+                        <h3 id="marketStoreNameDisplay" style="font-size: 18px; font-weight: 700; color: var(--text);">Farmoish <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--primary);"></i></h3>
+                        <p id="txtMyStoreSub" style="font-size: 11px; color: var(--muted);">Мои товары и магазин</p>
+                    </div>
+                    <div style="width: 40px; height: 40px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        <i class="fa-solid fa-store"></i>
+                    </div>
+                </div>
+
+                <div class="search-track-box">
+                    <input type="text" id="marketSearchInput" placeholder="Поиск товаров...">
+                    <button><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+
+                <div class="shops-scroll" style="margin-bottom: 15px;">
+                    <div class="shop-item" style="background: var(--primary); color: white;" id="txtCatAll">Все</div>
+                    <div class="shop-item" id="txtCatElec">Электроника</div>
+                    <div class="shop-item" id="txtCatClothes">Одежда</div>
+                    <div class="shop-item" id="txtCatHome">Дом и быт</div>
+                    <div class="shop-item" id="txtCatBeauty">Красота</div>
+                </div>
+
+                <h4 id="txtMarketProductsTitle" style="font-size: 14px; margin-bottom: 10px; font-weight: 700;">Товары маркетплейса</h4>
+                
+                <div class="market-grid-2">
+                    <div class="market-product-card">
+                        <div class="img-placeholder"><i class="fa-solid fa-headphones"></i></div>
+                        <h5 style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">Беспроводные наушники</h5>
+                        <b style="color: var(--primary); font-size: 13px;">350 с.</b>
+                        <button class="btn-primary" style="padding: 6px; font-size: 11px; margin-top: 8px;" onclick="showAppAlert('Корзина', 'Мол ба корзина илова шуд!')" id="btnAddToCart1">В корзину</button>
+                    </div>
+                    <div class="market-product-card">
+                        <div class="img-placeholder"><i class="fa-solid fa-scissors"></i></div>
+                        <h5 style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">Универсальный триммер</h5>
+                        <b style="color: var(--primary); font-size: 13px;">950 с.</b>
+                        <button class="btn-primary" style="padding: 6px; font-size: 11px; margin-top: 8px;" onclick="showAppAlert('Корзина', 'Мол ба корзина илова шуд!')" id="btnAddToCart2">В корзину</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: ЗАКАЗҲО (7 Статус) -->
+            <div id="tabOrders" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 id="txtOrdersTitle">Заказы и Поиск треков</h3>
+                    <button class="btn-primary" style="width: auto; padding: 6px 12px; font-size: 12px; margin: 0;" onclick="openSubPage('addTrackSubPage')" id="btnAddTrackTop">+ Трек</button>
+                </div>
+
+                <div class="search-track-box">
+                    <input type="text" id="clientSearchInput" placeholder="Ҷустуҷӯ бо трек-код..." oninput="searchClientTrack()" onfocus="handleSearchFocus(true)" onblur="handleSearchFocus(false)">
+                    <button onclick="searchClientTrack()"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+
+                <div id="searchResultArea" style="margin-bottom: 15px;"></div>
+                
+                <div class="order-status-card" onclick="openStatusDetail('Ожидание')">
+                    <div class="order-info"><h5 id="st1">Ожидание</h5><p id="stp1">Ожидаем ваш груз на складе в Китае</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+                <div class="order-status-card" onclick="openStatusDetail('Груз принят')">
+                    <div class="order-info"><h5 id="st2">Груз принят</h5><p id="stp2">Принят на складе в Китае</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+                <div class="order-status-card" onclick="openStatusDetail('В Пути')">
+                    <div class="order-info"><h5 id="st3">В Пути</h5><p id="stp3">В пути из Китая в Таджикистан</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+                <div class="order-status-card" onclick="openStatusDetail('В сортировочном центре')">
+                    <div class="order-info"><h5 id="st4">В сортировочном центре</h5><p id="stp4">В центре сортировки филиала</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+                <div class="order-status-card" onclick="openStatusDetail('Готов к выдаче')">
+                    <div class="order-info"><h5 id="st5">Готов к выдаче</h5><p id="stp5">Готов к выдаче в филиале</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+                <div class="order-status-card" onclick="openStatusDetail('Доставляется курьером')">
+                    <div class="order-info"><h5 id="st6">Доставляется курьером</h5><p id="stp6">Товар доставляется по адресу</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+                <div class="order-status-card" onclick="openStatusDetail('Груз получен')">
+                    <div class="order-info"><h5 id="st7">Груз получен</h5><p id="stp7">Груз успешно получен клиентом</p></div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted);"></i>
+                </div>
+            </div>
+
+            <!-- TAB 4: ИСТОРИЯ -->
+            <div id="tabHistory" class="tab-content">
+                <h3 id="txtHistoryTitle" style="margin-bottom: 15px;">История</h3>
+                <div class="address-box">
+                    <div class="address-row"><span>23.09.2026</span> <b style="color: #ef4444;">-9 с.</b></div>
+                    <p id="txtHistoryDesc" style="font-size: 11px; color: var(--muted);">Оплата груза</p>
+                </div>
+            </div>
+
+            <!-- TAB 5: ПРОФИЛЬ -->
+            <div id="tabProfile" class="tab-content">
+                <div class="profile-card-group" style="padding: 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="openSubPage('editProfileSubPage')">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div id="profileAvatarBox" style="width: 50px; height: 50px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden;">
+                            <i class="fa-solid fa-circle-user"></i>
+                        </div>
+                        <div>
+                            <h4 id="profileFullName" style="font-size: 16px; font-weight: 700;">Абдулло</h4>
+                            <p id="profilePhone" style="font-size: 12px; color: var(--muted);">900000000</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--muted); font-size: 13px;"></i>
+                </div>
+
+                <div class="profile-card-group">
+                    <div class="profile-item" onclick="openSubPage('myOrdersSubPage')">
+                        <div class="profile-item-left"><i class="fa-solid fa-bag-shopping"></i><span id="txtMenuMyOrders">Мои заказы</span></div>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i>
+                    </div>
+                    <div class="profile-item" onclick="openSubPage('favoritesSubPage')">
+                        <div class="profile-item-left"><i class="fa-solid fa-heart"></i><span id="txtMenuFav">Избранное</span></div>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i>
+                    </div>
+                    <div class="profile-item" onclick="openSubPage('deliveryAddressesSubPage')">
+                        <div class="profile-item-left"><i class="fa-solid fa-location-dot"></i><span id="txtMenuAddrs">Адреса доставки</span></div>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i>
+                    </div>
+                </div>
+
+                <!-- Seller Banner -->
+                <div class="seller-banner">
+                    <div class="seller-banner-text">
+                        <h4 id="txtSellerTitle">Станьте продавцом на Hayot Cargo</h4>
+                        <p id="txtSellerDesc">Ваша витрина в вашем смартфоне</p>
+                        <button class="seller-btn" onclick="openSubPage('createStoreSubPage')" id="txtBtnCreateStore">Создать магазин</button>
+                    </div>
+                    <i class="fa-solid fa-shop" style="font-size: 45px; opacity: 0.8;"></i>
+                </div>
+
+                <div id="txtHelpTitle" class="profile-section-title">Помощь</div>
+                <div class="profile-card-group">
+                    <div class="profile-item" onclick="openSubPage('securitySubPage')">
+                        <div class="profile-item-left"><i class="fa-solid fa-shield-halved"></i><span id="txtMenuSec">Безопасность</span></div>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i>
+                    </div>
+                    <div class="profile-item" onclick="openLanguageSelector()">
+                        <div class="profile-item-left"><i class="fa-solid fa-globe"></i><span id="txtMenuLang">Язык</span></div>
+                        <span id="currentLangDisplay" style="font-size: 12px; color: var(--muted);">Тоҷикӣ <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i></span>
+                    </div>
+                    <div class="profile-item" onclick="openSubPage('docsSubPage')">
+                        <div class="profile-item-left"><i class="fa-solid fa-file-lines"></i><span id="txtMenuDocs">Документы</span></div>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i>
+                    </div>
+                    <div class="profile-item" onclick="openSubPage('aboutSubPage')">
+                        <div class="profile-item-left"><i class="fa-solid fa-circle-info"></i><span id="txtMenuAbout">О приложении</span></div>
+                        <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i>
+                    </div>
+                </div>
+
+                <div class="order-status-card" onclick="logout()" style="border-color: #fecaca; background: #fef2f2; margin-top: 15px;">
+                    <div class="order-info"><h5 id="txtLogout" style="color: #ef4444;">Выйти</h5></div>
+                    <i class="fa-solid fa-right-from-bracket" style="color: #ef4444;"></i>
+                </div>
+            </div>
+        </div>
+
+        <nav class="bottom-nav" id="bottomNavMenu">
+            <button class="nav-link active" onclick="switchTab('tabCargo', this)"><i class="fa-solid fa-box"></i><span id="navCargo">Карго</span></button>
+            <button class="nav-link" onclick="switchTab('tabMarket', this)"><i class="fa-solid fa-store"></i><span id="navMarket">Маркет</span></button>
+            <button class="nav-link" onclick="switchTab('tabOrders', this)"><i class="fa-solid fa-boxes-stacked"></i><span id="navOrders">Заказы</span></button>
+            <button class="nav-link" onclick="switchTab('tabHistory', this)"><i class="fa-solid fa-clock-rotate-left"></i><span id="navHistory">История</span></button>
+            <button class="nav-link" onclick="switchTab('tabProfile', this)"><i class="fa-solid fa-user"></i><span id="navProfile">Профиль</span></button>
+        </nav>
+    </div>
+
+    <!-- CUSTOM ALERT -->
+    <div id="customAlertOverlay" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div class="custom-alert-title" id="customAlertTitle">Хабар</div>
+            <div class="custom-alert-msg" id="customAlertMsg">Маълумот</div>
+            <div class="custom-alert-buttons">
+                <button class="custom-alert-btn btn-cancel" id="customAlertCancelBtn" onclick="closeAppAlert(false)">Отменить</button>
+                <button class="custom-alert-btn btn-ok" onclick="closeAppAlert(true)">ОК</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛИ КАЛЬКУЛЯТОР -->
+    <div id="calcSubPage" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('calcSubPage')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtCalcHeader">Калькулятор доставки</span>
+        </div>
+        <div class="sub-body">
+            <div class="address-box">
+                <h4 style="margin-bottom: 12px;">Ҳисоби арзиши бор бо вазн</h4>
+                
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Намуди бор (Тип груза)</label>
+                <select id="calcCargoType" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:12px; font-size:13px;" onchange="calculateShipping()">
+                    <option value="standard">Борҳои стандартӣ ($1.8 за кг)</option>
+                    <option value="express">Экспресс бор ($2.5 за кг)</option>
+                    <option value="heavy">Борҳои вазнин ($1.5 за кг)</option>
+                </select>
+
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Вазн бо кг (Вес)</label>
+                <input type="number" id="calcWeight" placeholder="Масалан: 5" value="1" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:15px; font-size:13px;" oninput="calculateShipping()">
+
+                <div style="background:var(--primary-light); border:1px solid var(--primary); border-radius:14px; padding:15px; text-align:center;">
+                    <span style="font-size:12px; color:var(--primary-dark); font-weight:600;">Арзиши тахминии достарка:</span>
+                    <h2 id="calcResult" style="font-size:24px; color:var(--primary-dark); font-weight:700; margin-top:5px;">18 сомонӣ</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛИ ТАНЗИМОТИ ПРОФИЛ -->
+    <div id="editProfileSubPage" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('editProfileSubPage')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtEditProfileHeader">Профиль</span>
+        </div>
+        <div class="sub-body" style="text-align: center;">
+            <div style="position: relative; display: inline-block; margin: 20px 0; cursor: pointer;" onclick="document.getElementById('profileImageInput').click()">
+                <div id="editProfileAvatar" style="width: 90px; height: 90px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; overflow: hidden; margin: 0 auto;">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div style="position: absolute; bottom: 0; right: 0; width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid white;">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+            </div>
+            <input type="file" id="profileImageInput" accept="image/*" style="display:none;" onchange="handleProfileImageUpload(event)">
+            
+            <p id="txtAddPhotoLabel" style="font-size: 14px; color: #6366f1; font-weight: 600; margin-bottom: 25px; cursor: pointer;" onclick="document.getElementById('profileImageInput').click()">Добавить фото</p>
+
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label id="txtLabelName" style="font-size: 12px; font-weight: 700; color: var(--muted);">Имя</label>
+                <input type="text" id="inputEditName" value="Абдулло" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); margin-top: 5px; font-size: 14px;">
+            </div>
+
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label id="txtLabelPhone" style="font-size: 12px; font-weight: 700; color: var(--muted);">Телефон</label>
+                <input type="tel" id="inputEditPhone" value="+992 900 00 00 00" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); margin-top: 5px; font-size: 14px;">
+            </div>
+
+            <button class="btn-primary" style="margin-top: 20px; background: #6366f1;" onclick="saveProfileChanges()" id="btnSaveProfile">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- ДИГАР МОДАЛҲО -->
+    <div id="languageSelectorModal" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('languageSelectorModal')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtLangHeader">Интихоби забон / Выберите язык</span>
+        </div>
+        <div class="sub-body">
+            <div class="profile-card-group">
+                <div class="profile-item" onclick="setAppLanguage('tg')">
+                    <div class="profile-item-left"><i class="fa-solid fa-globe" style="color:var(--primary);"></i><span>Тоҷикӣ (Tajik)</span></div>
+                    <i id="checkTg" class="fa-solid fa-check" style="color:var(--primary); display:none;"></i>
+                </div>
+                <div class="profile-item" onclick="setAppLanguage('ru')">
+                    <div class="profile-item-left"><i class="fa-solid fa-globe" style="color:var(--primary);"></i><span>Русский (Russian)</span></div>
+                    <i id="checkRu" class="fa-solid fa-check" style="color:var(--primary); display:none;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ТАНЗИМОТИ ПРОФИЛИ МАҒОЗА (Сурат аз галерея) -->
+    <div id="createStoreSubPage" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('createStoreSubPage')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtStoreProfileHeader">Профиль магазина</span>
+        </div>
+        <div class="sub-body">
+            <div class="address-box">
+                <h4 id="txtLogoTitle" style="margin-bottom: 8px;">Логотип (Сурат)</h4>
+                <div style="display:flex; align-items:center; gap:15px; background:var(--bg); border:1px dashed var(--border); padding:15px; border-radius:14px; cursor:pointer;" onclick="document.getElementById('storeImageInput').click()">
+                    <div id="storeLogoPreview" style="width:60px; height:60px; background:var(--card-bg); border-radius:12px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:22px; overflow:hidden;">
+                        <i class="fa-regular fa-image"></i>
+                    </div>
+                    <div>
+                        <span id="txtUploadLogo" style="font-size:13px; font-weight:600; color:var(--primary);">Загрузить логотип из галереи</span>
+                        <p id="txtLogoDesc" style="font-size:11px; color:var(--muted); margin-top:2px;">PNG или JPG</p>
+                    </div>
+                </div>
+                <input type="file" id="storeImageInput" accept="image/*" style="display:none;" onchange="handleStoreImageUpload(event)">
+            </div>
+
+            <div class="address-box">
+                <h4 id="txtMainInfoTitle" style="margin-bottom: 12px;">Основная информация</h4>
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Название магазина *</label>
+                <input type="text" id="storeNameInput" placeholder="Например: Farmoish" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:12px; font-size:13px;">
+            </div>
+
+            <div class="address-box">
+                <h4 style="margin-bottom: 12px;">Адрес магазина</h4>
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Город</label>
+                <div id="selectedStoreCity" onclick="openLocationSelector('store')" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--muted); margin-top:5px; margin-bottom:12px; font-size:13px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                    <span>Выберите адрес</span>
+                    <i class="fa-solid fa-chevron-right" style="font-size:11px;"></i>
+                </div>
+
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Адрес *</label>
+                <input type="text" id="storeStreetInput" placeholder="Улица, дом, ориентир" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; font-size:13px;">
+            </div>
+
+            <div class="address-box">
+                <h4 style="margin-bottom: 12px;">Контакты</h4>
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Email</label>
+                <input type="email" id="storeEmailInput" placeholder="1234566" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; font-size:13px;">
+            </div>
+
+            <div class="address-box">
+                <h4 style="margin-bottom: 12px;">Социальные сети</h4>
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Instagram</label>
+                <input type="text" id="storeInstaInput" placeholder="7" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:12px; font-size:13px;">
+                
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Telegram</label>
+                <input type="text" id="storeTelegramInput" placeholder="@username" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; font-size:13px;">
+            </div>
+
+            <button id="btnSaveStore" class="btn-primary" onclick="saveStoreSettings()">Сохранить настройки</button>
+        </div>
+    </div>
+
+    <!-- БАХШИ ДОСТАВКА ДО ДОМА (Интихоби адрес ва трек-кодҳо) -->
+    <div id="deliverySubPage" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('deliverySubPage')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtHomeDelivHeader">Доставка до дома</span>
+        </div>
+        <div class="sub-body">
+            <div class="address-box">
+                <h4 style="margin-bottom: 12px;">Адреси достаркаи хона</h4>
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Шаҳр / Ноҳия</label>
+                <div id="selectedDeliveryCity" onclick="openLocationSelector('delivery_home')" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--muted); margin-top:5px; margin-bottom:12px; font-size:13px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                    <span>Шаҳрро интихоб кунед</span>
+                    <i class="fa-solid fa-chevron-right" style="font-size:11px;"></i>
+                </div>
+
+                <label style="font-size:11px; font-weight:700; color:var(--muted);">Кӯча ва хона</label>
+                <input type="text" id="homeDeliveryStreet" placeholder="Масалан: кӯчаи Рудакӣ 15" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; font-size:13px;">
+            </div>
+
+            <div class="address-box">
+                <h4 style="margin-bottom: 10px;">Интихоби трек-кодҳо барои овардан</h4>
+                <p style="font-size:11px; color:var(--muted); margin-bottom: 12px;">Борҳое, ки мехоҳед ба хонаатон оранд, интихоб кунед:</p>
+                <div id="deliveryTracksContainer">
+                    <div class="empty-box" style="height: 150px;">
+                        <h4 style="font-size: 14px;">Трек-кодҳо ёфт нашуданд</h4>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="submitHomeDeliveryOrder()">Дархости доставка</button>
+        </div>
+    </div>
+
+    <div id="myStoreProductsSubPage" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('myStoreProductsSubPage')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtMyStoreHeader">Мои товары</span>
+        </div>
+        <div class="sub-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 id="txtMyProductsTitle" style="font-size: 15px;">Мои товары</h4>
+                <button id="btnAddProductTop" class="btn-primary" style="width: auto; padding: 6px 14px; font-size: 12px; margin: 0;" onclick="openSubPage('addProductSubPage')">+ Иловаи бор</button>
+            </div>
+            <div id="myStoreProductsList">
+                <div class="empty-box" style="height: 50vh;">
+                    <i class="fa-solid fa-box-open"></i>
+                    <h4 id="txtNoProducts">Ҳоло ягон бор илова накардаед</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addProductSubPage" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('addProductSubPage')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="txtAddProdHeader">Илова кардани бор</span>
+        </div>
+        <div class="sub-body">
+            <label id="txtLabelProdName" style="font-size:11px; font-weight:700; color:var(--muted);">Номи бор *</label>
+            <input type="text" id="newProdName" placeholder="Масалан..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:12px; font-size:13px;">
+            <label id="txtLabelProdPrice" style="font-size:11px; font-weight:700; color:var(--muted);">Нарх бо сомонӣ *</label>
+            <input type="number" id="newProdPrice" placeholder="150" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:15px; font-size:13px;">
+            <button id="btnSaveProd" class="btn-primary" onclick="saveNewProduct()">Сабт ва нашр кардан</button>
+        </div>
+    </div>
+
+    <div id="locationSelectorModal" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('locationSelectorModal')"><i class="fa-solid fa-xmark" style="font-size: 20px;"></i></button>
+            <span id="txtSelectAddrHeader">Выберите адрес</span>
+        </div>
+        <div class="sub-body">
+            <div class="search-track-box">
+                <input type="text" id="locationSearchInput" placeholder="Поиск локации..." oninput="filterLocations(this.value)">
+                <button><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div id="locationListContainer"></div>
+        </div>
+    </div>
+
+    <div id="myOrdersSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('myOrdersSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtOrdersHeader">Мои заказы</span></div><div class="sub-body"><div class="empty-box"><i class="fa-solid fa-bag-shopping"></i><h4 id="txtNoOrders">Заказов пока нет</h4></div></div></div>
+    <div id="favoritesSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('favoritesSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtFavHeader">Избранное</span></div><div class="sub-body"><div class="empty-box"><i class="fa-solid fa-heart"></i><h4 id="txtNoFav">Список избранного пуст</h4></div></div></div>
+    <div id="deliveryAddressesSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('deliveryAddressesSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtAddrsHeader">Адреса доставки</span></div><div class="sub-body"><div class="empty-box"><i class="fa-solid fa-location-dot"></i><h4 id="txtNoAddrs">Адреса не добавлены</h4></div><button class="btn-primary" onclick="openLocationSelector('delivery')">+ Добавить адрес</button></div></div>
+    <div id="securitySubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('securitySubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtSecHeader">Безопасность</span></div><div class="sub-body"><div class="profile-card-group"><div class="profile-item" onclick="openSubPage('changePinSubPage')"><div class="profile-item-left"><i class="fa-solid fa-lock"></i><span id="txtChangePinTitle">Изменить PIN-код</span></div><i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i></div></div></div></div>
+    <div id="changePinSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('changePinSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtPinHeader">Тағйири PIN</span></div><div class="sub-body" style="text-align: center; padding-top: 30px;"><p id="txtPinPrompt" style="font-size: 13px; color: var(--muted); margin-bottom: 20px;">PIN-коди нави 4-рақамӣ ворид кунед</p><input type="password" id="newPinInput" maxlength="4" inputmode="numeric" placeholder="••••" style="width: 150px; text-align: center; padding: 12px; font-size: 22px; border-radius: 12px; border: 1px solid var(--border); outline: none; letter-spacing: 5px;"><br><br><button id="btnSavePin" class="btn-primary" style="max-width: 200px; margin: 0 auto;" onclick="saveNewPin()">Сабт кардан</button></div></div>
+    <div id="docsSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('docsSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtDocsHeader">Документы</span></div><div class="sub-body"><div class="profile-section-title" id="txtLegalInfo">Правовая информация</div><div class="profile-card-group"><div class="profile-item" onclick="showAppAlert('Публичная оферта', 'Условия...')"><div class="profile-item-left"><i class="fa-solid fa-file-contract"></i><span id="txtOffer">Публичная оферта</span></div><i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--muted);"></i></div></div></div></div>
+    <div id="aboutSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('aboutSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtAboutHeader">О приложении</span></div><div class="sub-body" style="text-align: center; padding-top: 50px;"><div style="width: 80px; height: 80px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px auto;"><i class="fa-solid fa-truck-fast"></i></div><h2 style="font-size: 20px; font-weight: 700; color: var(--text);">Hayot Cargo</h2><p id="txtVersion" style="font-size: 13px; color: var(--muted); margin-top: 5px;">Версия 2.7.1</p></div></div>
+    <div id="addTrackSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('addTrackSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtAddTrackHeader">Добавить трек-код</span></div><div class="sub-body"><label id="txtLabelCargoName" style="font-size: 12px; color: var(--muted); font-weight: 600;">Номи бор</label><input type="text" id="newCargoNameInput" placeholder="Масалан..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px; margin-bottom:12px;"><label id="txtLabelTrackCode" style="font-size: 12px; color: var(--muted); font-weight: 600;">Трек-код</label><input type="text" id="newTrackCodeInput" placeholder="Введите трек-код" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); margin-top:5px;"><button id="btnSubmitTrack" class="btn-primary" onclick="addNewClientTrack()" style="margin-top: 20px;">Добавить трек</button></div></div>
+    
+    <!-- МОДАЛИ 7 СТАТУС ВА ТАФСИЛОТИ БОР -->
+    <div id="statusDetailModal" class="app-modal">
+        <div class="sub-header">
+            <button onclick="closeSubPage('statusDetailModal')"><i class="fa-solid fa-arrow-left"></i></button>
+            <span id="modalStatusTitle">Маълумоти бор</span>
+        </div>
+        <div class="sub-body" id="statusModalContent" style="padding: 15px; background: var(--bg);"></div>
+    </div>
+
+    <div id="qrSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('qrSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtQrHeader">Мой QR</span></div><div class="sub-body" style="text-align: center;"><div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid var(--border); display: inline-block; margin: 20px 0;"><i class="fa-solid fa-qrcode" style="font-size: 160px; color: var(--text);"></i></div><h2 id="qrCodeText">FC0000000</h2></div></div>
+    <div id="lessonsSubPage" class="app-modal"><div class="sub-header"><button onclick="closeSubPage('lessonsSubPage')"><i class="fa-solid fa-arrow-left"></i></button><span id="txtLessonsHeader">Уроки</span></div><div class="sub-body"><p>Уроки...</p></div></div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyAApd38FYbWjpzvcf5iZGOwAtyYynGjZi4",
+    authDomain: "hayot-01010101.firebaseapp.com",
+    projectId: "hayot-01010101",
+    storageBucket: "hayot-01010101.firebasestorage.app",
+    messagingSenderId: "617680807598",
+    appId: "1:617680807598:web:717574c097c3421251ef3f",
+    measurementId: "G-LSM0ZKPB3N"
+};
+
+if(!firebase.apps.length){ firebase.initializeApp(firebaseConfig); }
+const db = firebase.firestore();
+const BRANCH_ID = "dushanbe";
+
+let clientTracks = [];
+let myStoreProducts = [];
+let targetLocationType = '';
+let currentLang = localStorage.getItem('hayot_lang') || 'tg';
+
+const translations = {
+    tg: {
+        navCargo: "Карго", navMarket: "Маркет", navOrders: "Заказы", navHistory: "История", navProfile: "Профиль",
+        txtWalletTitle: "Баланс ва бонусҳо",
+        txtMenuQr: "Мой QR", txtMenuDelivery: "Доставка до дома", txtMenuCalc: "Калькулятор", txtMenuLessons: "Бесплатные уроки",
+        txtCopyAddrTitle: "Адреси достаркаро копия кунед", txtYourId: "ID-и шумо:", txtPhoneLabel: "Телефон:", btnCopyAll: "Ҳамаашро якҷоя копия кардан",
+        txtMyStoreSub: "Мағоза ва молҳои من", txtCatAll: "Ҳама", txtCatElec: "Электроника", txtCatClothes: "Либосҳо", txtCatHome: "Хона ва рӯзгор", txtCatBeauty: "Зебоӣ", txtMarketProductsTitle: "Молҳои маркетплейс",
+        btnAddToCart1: "В корзину", btnAddToCart2: "В корзину",
+        txtOrdersTitle: "Заказо ва ҷустуҷӯи трекҳо", btnAddTrackTop: "+ Трек",
+        st1: "Ожидание", stp1: "Интизори бори шумо дар склади Чин",
+        st2: "Груз принят", stp2: "Дар склади Чин қабул шуд",
+        st3: "В Пути", stp3: "Дар роҳ ба Тоҷикистон",
+        st4: "В сортировочном центре", stp4: "Дар маркази сортировка",
+        st5: "Готов к выдаче", stp5: "Барои супуردن омода аст",
+        st6: "Доставляется курьером", stp6: "Бо курьер расонида мешавад",
+        st7: "Груз получен", stp7: "Бор бомуваффақият гирифта шуд",
+        txtHistoryTitle: "История", txtHistoryDesc: "Пардохти бор",
+        txtMenuMyOrders: "Заказҳои من", txtMenuFav: "Избранное", txtMenuAddrs: "Адресҳои достарка",
+        txtSellerTitle: "Фурӯшанда шавед дар Hayot Cargo", txtSellerDesc: "Витринаи шумо дар телефони шумо", txtBtnCreateStore: "Сохтани мағоза",
+        txtHelpTitle: "Ёрдам", txtMenuSec: "Бехатарӣ", txtMenuLang: "Забон", txtMenuDocs: "Документҳо", txtMenuAbout: "Дар бораи барнома", txtLogout: "Баромадан",
+        txtEditProfileHeader: "Профиль", txtAddPhotoLabel: "Илова кардани сурат", txtLabelName: "Ном", txtLabelPhone: "Телефон", btnSaveProfile: "Сабт кардан",
+        txtLangHeader: "Интихоби забон",
+        txtStoreProfileHeader: "Профили мағоза", txtLogoTitle: "Логотип", txtUploadLogo: "Загрузить логотип из галереи", txtLogoDesc: "PNG ё JPG",
+        txtMainInfoTitle: "Маълумоти асосӣ", txtStoreNameLabel: "Название магазина *", btnSaveStore: "Сохранить настройки",
+        txtMyStoreHeader: "Молҳои من", txtMyProductsTitle: "Молҳои من", btnAddProductTop: "+ Иловаи бор", txtNoProducts: "Ҳоло ягон бор илова накардаед",
+        txtAddProdHeader: "Илова кардани бор", txtLabelProdName: "Номи бор *", txtLabelProdPrice: "Нарх бо сомонӣ *", btnSaveProd: "Сабт ва нашр кардан",
+        txtSelectAddrHeader: "Выберите адрес", txtOrdersHeader: "Мои заказы", txtNoOrders: "Заказов пока нет", txtFavHeader: "Избранное", txtNoFav: "Список избранного пуст",
+        txtAddrsHeader: "Адреса доставки", txtNoAddrs: "Адреса не добавлены", btnAddAddr: "+ Добавить адрес",
+        txtSecHeader: "Безопасность", txtChangePinTitle: "Изменить PIN-код", txtPinHeader: "Тағйири PIN", txtPinPrompt: "PIN-коди нави 4-рақамӣ ворид кунед", btnSavePin: "Сабт кардан",
+        txtDocsHeader: "Документы", txtLegalInfo: "Правовая информация", txtOffer: "Публичная оферта",
+        txtAboutHeader: "О приложении", txtVersion: "Версия 2.7.1",
+        txtAddTrackHeader: "Добавить трек-код", txtLabelCargoName: "Номи бор", txtLabelTrackCode: "Трек-код", btnSubmitTrack: "Добавить трек",
+        txtQrHeader: "Мой QR", txtHomeDelivHeader: "Доставка до дома", txtNoDelivItems: "Нет товаров для доставки", txtCalcHeader: "Калькулятор", txtLessonsHeader: "Уроки",
+        txtRefresh: "Навсозӣ истодааст..."
+    },
+    ru: {
+        navCargo: "Карго", navMarket: "Маркет", navOrders: "Заказы", navHistory: "История", navProfile: "Профиль",
+        txtWalletTitle: "Баланс и бонусы",
+        txtMenuQr: "Мой QR", txtMenuDelivery: "Доставка до дома", txtMenuCalc: "Калькулятор", txtMenuLessons: "Бесплатные уроки",
+        txtCopyAddrTitle: "Скопируйте адрес доставки", txtYourId: "Ваш ID:", txtPhoneLabel: "Телефон:", btnCopyAll: "Скопировать всё сразу",
+        txtMyStoreSub: "Мои товары и магазин", txtCatAll: "Все", txtCatElec: "Электроника", txtCatClothes: "Одежда", txtCatHome: "Дом и быт", txtCatBeauty: "Красота", txtMarketProductsTitle: "Товары маркетплейса",
+        btnAddToCart1: "В корзину", btnAddToCart2: "В корзину",
+        txtOrdersTitle: "Заказы и Поиск треков", btnAddTrackTop: "+ Трек",
+        st1: "Ожидание", stp1: "Ожидаем ваш груз на складе в Китае",
+        st2: "Груз принят", stp2: "Принят на складе в Китае",
+        st3: "В Пути", stp3: "В пути из Китая в Таджикистан",
+        st4: "В сортировочном центре", stp4: "В центре сортировки филиала",
+        st5: "Готов к выдаче", stp5: "Готов к выдаче в филиале",
+        st6: "Доставляется курьером", stp6: "Товар доставляется по адресу",
+        st7: "Груз получен", stp7: "Груз успешно получен клиентом",
+        txtHistoryTitle: "История", txtHistoryDesc: "Оплата груза",
+        txtMenuMyOrders: "Мои заказы", txtMenuFav: "Избранное", txtMenuAddrs: "Адреса доставки",
+        txtSellerTitle: "Станьте продавцом на Hayot Cargo", txtSellerDesc: "Ваша витрина в вашем смартфоне", txtBtnCreateStore: "Создать магазин",
+        txtHelpTitle: "Помощь", txtMenuSec: "Безопасность", txtMenuLang: "Язык", txtMenuDocs: "Документы", txtMenuAbout: "О приложении", txtLogout: "Выйти",
+        txtEditProfileHeader: "Профиль", txtAddPhotoLabel: "Добавить фото", txtLabelName: "Имя", txtLabelPhone: "Телефон", btnSaveProfile: "Сохранить",
+        txtLangHeader: "Выберите язык",
+        txtStoreProfileHeader: "Профиль магазина", txtLogoTitle: "Логотип", txtUploadLogo: "Загрузить логотип из галереи", txtLogoDesc: "PNG или JPG",
+        txtMainInfoTitle: "Основная информация", txtStoreNameLabel: "Название магазина *", btnSaveStore: "Сохранить настройки",
+        txtMyStoreHeader: "Мои товары", txtMyProductsTitle: "Мои товары", btnAddProductTop: "+ Иловаи бор", txtNoProducts: "Ҳоло ягон бор илова накардаед",
+        txtAddProdHeader: "Илова кардани бор", txtLabelProdName: "Номи бор *", txtLabelProdPrice: "Нарх бо сомонӣ *", btnSaveProd: "Сабт ва нашр кардан",
+        txtSelectAddrHeader: "Выберите адрес", txtOrdersHeader: "Мои заказы", txtNoOrders: "Заказов пока нет", txtFavHeader: "Избранное", txtNoFav: "Список избранного пуст",
+        txtAddrsHeader: "Адреса доставки", txtNoAddrs: "Адреса не добавлены", btnAddAddr: "+ Добавить адрес",
+        txtSecHeader: "Безопасность", txtChangePinTitle: "Изменить PIN-код", txtPinHeader: "Тағйири PIN", txtPinPrompt: "PIN-коди нави 4-рақамӣ ворид кунед", btnSavePin: "Сабт кардан",
+        txtDocsHeader: "Документы", txtLegalInfo: "Правовая информация", txtOffer: "Публичная оферта",
+        txtAboutHeader: "О приложении", txtVersion: "Версия 2.7.1",
+        txtAddTrackHeader: "Добавить трек-код", txtLabelCargoName: "Номи бор", txtLabelTrackCode: "Трек-код", btnSubmitTrack: "Добавить трек",
+        txtQrHeader: "Мой QR", txtHomeDelivHeader: "Доставка до дома", txtNoDelivItems: "Нет товаров для доставки", txtCalcHeader: "Калькулятор", txtLessonsHeader: "Уроки",
+        txtRefresh: "Навсозӣ истодааст..."
+    }
+};
+
+function calculateShipping() {
+    const type = document.getElementById('calcCargoType').value;
+    const weight = parseFloat(document.getElementById('calcWeight').value) || 0;
+    let rate = 1.8;
+    if(type === 'express') rate = 2.5;
+    if(type === 'heavy') rate = 1.5;
+    
+    const totalUsd = weight * rate;
+    const totalSom = totalUsd * 11;
+    document.getElementById('calcResult').textContent = totalSom.toFixed(2) + " сомонӣ (~$" + totalUsd.toFixed(2) + ")";
+}
+
+function updateAppLanguageTexts() {
+    const t = translations[currentLang];
+    for(let key in t) {
+        const el = document.getElementById(key);
+        if(el) el.textContent = t[key];
+    }
+    document.getElementById('currentLangDisplay').innerHTML = (currentLang === 'tg' ? 'Тоҷикӣ' : 'Русский') + ` <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>`;
+}
+
+function setAppLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('hayot_lang', lang);
+    updateAppLanguageTexts();
+    closeSubPage('languageSelectorModal');
+}
+
+function openLanguageSelector() {
+    document.getElementById('checkTg').style.display = currentLang === 'tg' ? 'inline-block' : 'none';
+    document.getElementById('checkRu').style.display = currentLang === 'ru' ? 'inline-block' : 'none';
+    openSubPage('languageSelectorModal');
+}
+
+const tajikistanLocations = [
+    "Якачинор (32-ум мкр)", "Цирк", "М.С Садбарг", "Шаҳри Душанбе (Марказ)", "Ноҳияи И.Сомонӣ", "Ноҳияи Сино", "Ноҳияи Фирдавсӣ", "Ноҳияи Шоҳмансур",
+    "Шаҳри Хуҷанд", "Ноҳияи Бобоҷон Ғафуров", "Шаҳри Истаравшан", "Шаҳри Панҷакент", "Шаҳри Конибодом", "Шаҳри Исфара", "Ноҳияи Спитамен", "Ноҳияи Ҷаббор Расулов", "Ноҳияи Зафаробод", "Ноҳияи Шаҳристон", "Ноҳияи Айнӣ", "Ноҳияи Деваштич", "Ноҳияи Кӯҳистони Мастчоҳ",
+    "Шаҳри Бохтар", "Шаҳри Норак", "Шаҳри Леваканд", "Ноҳияи Вахш", "Ноҳияи Бохтар (Кӯшониён)", "Ноҳияи Абдураҳмони Ҷомӣ", "Ноҳияи Ёвон", "Ноҳияи Панҷ", "Ноҳияи Шаҳритус", "Ноҳияи Носири Хусрав", "Ноҳияи Дӯстӣ", "Ноҳияи Ҳамадонӣ", "Ноҳияи Данғара", "Ноҳияи Фархор", "Ноҳияи Восеъ", "Ноҳияи Мӯъминобод", "Ноҳияи Ховалинг",
+    "Шаҳри Кӯлоб", "Шаҳри Ваҳдат", "Шаҳри Турсунзода", "Ноҳияи Ҳисор", "Ноҳияи Рӯдакӣ", "Ноҳияи Шаҳринав", "Ноҳияи Файзобод", "Ноҳияи Рашт", "Ноҳияи Тоҷикобод", "Ноҳияи Сангвор", "Ноҳияи Лахш", "Ноҳияи Дарвоз", "Ноҳияи Ванҷ", "Ноҳияи Рӯшон", "Ноҳияи Шуғнон", "Ноҳияи Ишкошим", "Ноҳияи Мурғоб", "Шаҳри Хоруғ"
+];
+
+function openLocationSelector(type) {
+    targetLocationType = type;
+    renderLocationList(tajikistanLocations);
+    openSubPage('locationSelectorModal');
+}
+
+function renderLocationList(list) {
+    const container = document.getElementById('locationListContainer');
+    container.innerHTML = list.map(loc => `
+        <div class="profile-item" onclick="selectLocation('${loc}')">
+            <div class="profile-item-left"><i class="fa-solid fa-location-dot"></i><span>${loc}</span></div>
+            <div style="width:18px; height:18px; border:2px solid var(--border); border-radius:50%;"></div>
+        </div>
+    `).join('');
+}
+
+function filterLocations(query) {
+    const filtered = tajikistanLocations.filter(l => l.toLowerCase().includes(query.toLowerCase()));
+    renderLocationList(filtered);
+}
+
+function selectLocation(locName) {
+    if(targetLocationType === 'pvz') {
+        document.getElementById('selectedPvzDisplay').textContent = "ПВЗ: " + locName;
+        localStorage.setItem('hayot_pvz', locName);
+    } else if(targetLocationType === 'store') {
+        document.getElementById('selectedStoreCity').innerHTML = `<span style="font-size:13px; color:var(--text); font-weight:600;">${locName}</span><i class="fa-solid fa-chevron-right" style="font-size:11px; color:var(--muted);"></i>`;
+    } else if(targetLocationType === 'delivery_home') {
+        document.getElementById('selectedDeliveryCity').innerHTML = `<span style="font-size:13px; color:var(--text); font-weight:600;">${locName}</span><i class="fa-solid fa-chevron-right" style="font-size:11px; color:var(--muted);"></i>`;
+    }
+    closeSubPage('locationSelectorModal');
+}
+
+function handleStoreImageUpload(event) {
+    const file = event.target.files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageUrl = e.target.result;
+            localStorage.setItem('hayot_store_logo', imageUrl);
+            document.getElementById('storeLogoPreview').innerHTML = `<img src="${imageUrl}" style="width:100%; height:100%; object-fit:cover;">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function openDeliveryModal() {
+    renderDeliveryTracksList();
+    openSubPage('deliverySubPage');
+}
+
+function renderDeliveryTracksList() {
+    const container = document.getElementById('deliveryTracksContainer');
+    if(clientTracks.length === 0) {
+        container.innerHTML = `<div class="empty-box" style="height: 120px;"><h4 style="font-size: 13px;">Ягон бор ёфт нашуд</h4></div>`;
+        return;
+    }
+    container.innerHTML = clientTracks.map(t => `
+        <div class="profile-item" onclick="toggleTrackSelection('${t.track}', this)" style="border-radius:10px; margin-bottom:6px; border:1px solid var(--border);">
+            <div class="profile-item-left"><i class="fa-solid fa-box" style="color:var(--primary);"></i><span><b>${t.track}</b> (${t.cargoName || 'Бор'})</span></div>
+            <input type="checkbox" class="delivery-track-chk" value="${t.track}" style="width:18px; height:18px; accent-color:var(--primary);">
+        </div>
+    `).join('');
+}
+
+function toggleTrackSelection(trackCode, el) {
+    const chk = el.querySelector('input[type="checkbox"]');
+    if(chk) {
+        chk.checked = !chk.checked;
+    }
+}
+
+function submitHomeDeliveryOrder() {
+    const selectedTracks = Array.from(document.querySelectorAll('.delivery-track-chk:checked')).map(cb => cb.value);
+    const street = document.getElementById('homeDeliveryStreet').value.trim();
+    if(selectedTracks.length === 0) {
+        showAppAlert("Хатогӣ", "Лутфан ҳадди ақал як трек-кодро интихоб кунед!");
+        return;
+    }
+    if(!street) {
+        showAppAlert("Хатогӣ", "Лутфан адреси кӯчаро ворид кунед!");
+        return;
+    }
+    showAppAlert("Муваффақ", "Дархости доставка бомуваффақият қабул шуд!");
+    closeSubPage('deliverySubPage');
+}
+
+function saveStoreSettings() {
+    const sName = document.getElementById('storeNameInput').value.trim();
+    if(sName) {
+        document.getElementById('marketStoreNameDisplay').innerHTML = `${sName} <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--primary);"></i>`;
+    }
+    showAppAlert("Муваффақ", "Танзимоти мағоза сабт шуд!");
+    closeSubPage('createStoreSubPage');
+}
+
+function saveNewProduct() {
+    const pName = document.getElementById('newProdName').value.trim();
+    const pPrice = document.getElementById('newProdPrice').value.trim();
+    if(!pName || !pPrice) {
+        showAppAlert("Хатогӣ", "Лутфан номи бор ва нархро ворид кунед!");
+        return;
+    }
+    myStoreProducts.push({ name: pName, price: pPrice });
+    document.getElementById('newProdName').value = '';
+    document.getElementById('newProdPrice').value = '';
+    closeSubPage('addProductSubPage');
+    renderMyStoreProducts();
+    showAppAlert("Муваффақ", "Бор бомуваффақият илова шуд!");
+}
+
+function renderMyStoreProducts() {
+    const listContainer = document.getElementById('myStoreProductsList');
+    if(myStoreProducts.length === 0) {
+        listContainer.innerHTML = `<div class="empty-box" style="height: 50vh;"><i class="fa-solid fa-box-open"></i><h4>Ҳоло ягон бор илова накардаед</h4></div>`;
+    } else {
+        listContainer.innerHTML = `<div class="market-grid-2">` + myStoreProducts.map(p => `
+            <div class="market-product-card">
+                <div class="img-placeholder"><i class="fa-solid fa-box"></i></div>
+                <h5 style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">${p.name}</h5>
+                <b style="color: var(--primary); font-size: 13px;">${p.price} с.</b>
+            </div>
+        `).join('') + `</div>`;
+    }
+}
+
+function handleProfileImageUpload(event) {
+    const file = event.target.files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageUrl = e.target.result;
+            localStorage.setItem('hayot_user_avatar', imageUrl);
+            applyUserAvatar(imageUrl);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function applyUserAvatar(url) {
+    document.getElementById('profileAvatarBox').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover;">`;
+    document.getElementById('editProfileAvatar').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover;">`;
+}
+
+function saveProfileChanges() {
+    const newName = document.getElementById('inputEditName').value.trim();
+    const newPhone = document.getElementById('inputEditPhone').value.trim();
+    if(newName) {
+        localStorage.setItem('hayot_client_name', newName);
+        document.getElementById('profileFullName').textContent = newName;
+        document.getElementById('headerUserName').textContent = newName;
+    }
+    if(newPhone) {
+        localStorage.setItem('hayot_client_phone', newPhone);
+        document.getElementById('profilePhone').textContent = newPhone;
+    }
+    showAppAlert("Муваффақ", "Маълумоти профил тағйир ёфт!");
+    closeSubPage('editProfileSubPage');
+}
+
+let alertCallback = null;
+function showAppAlert(title, message, showCancel = false, callback = null) {
+    document.getElementById('customAlertTitle').textContent = title;
+    document.getElementById('customAlertMsg').textContent = message;
+    document.getElementById('customAlertCancelBtn').style.display = showCancel ? 'block' : 'none';
+    alertCallback = callback;
+    document.getElementById('customAlertOverlay').classList.add('show');
+}
+
+function closeAppAlert(isOk) {
+    document.getElementById('customAlertOverlay').classList.remove('show');
+    if (alertCallback) { alertCallback(isOk); alertCallback = null; }
+}
+
+function handleSearchFocus(isFocused) {
+    const bottomNav = document.getElementById('bottomNavMenu');
+    if(window.innerWidth <= 480) {
+        if(isFocused) bottomNav.style.display = 'none';
+        else setTimeout(() => { bottomNav.style.display = 'flex'; }, 200);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    updateAppLanguageTexts();
+    calculateShipping();
+    setTimeout(async () => {
+        document.getElementById('splashScreen').classList.add('hidden');
+        
+        const savedPvz = localStorage.getItem('hayot_pvz');
+        if(savedPvz) {
+            document.getElementById('selectedPvzDisplay').textContent = "ПВЗ: " + savedPvz;
+        }
+
+        const savedAvatar = localStorage.getItem('hayot_user_avatar');
+        if(savedAvatar) { applyUserAvatar(savedAvatar); }
+
+        const savedStoreLogo = localStorage.getItem('hayot_store_logo');
+        if(savedStoreLogo) {
+            document.getElementById('storeLogoPreview').innerHTML = `<img src="${savedStoreLogo}" style="width:100%; height:100%; object-fit:cover;">`;
+        }
+
+        const savedFc = localStorage.getItem('hayot_client_fc');
+        const savedPin = localStorage.getItem('hayot_client_pin');
+
+        if(savedFc && savedPin) {
+            document.getElementById('pinScreen').classList.remove('hidden');
+            document.getElementById('txtPinTitle').textContent = currentLang === 'tg' ? "PIN-коди худро ворид кунед" : "Введите ваш PIN-код";
+        } else {
+            document.getElementById('regScreen').classList.remove('hidden');
+        }
+    }, 1500);
+    initPullToRefresh();
+});
+
+async function checkClientInFirebase() {
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const fcCode = document.getElementById('regFcCode').value.trim().toUpperCase();
+    
+    if(!name || !phone || !fcCode) {
+        showAppAlert("Хатогӣ", "Лутфан ҳамаи майдонҳоро пур кунед!");
+        return;
+    }
+    
+    try {
+        const docRef = db.collection("branches").doc(BRANCH_ID).collection("clients").doc(fcCode);
+        const docSnap = await docRef.get();
+        if(!docSnap.exists) { showAppAlert("Хатогӣ", "Ин FC-код ёфт нашуд!"); return; }
+        
+        const clientData = docSnap.data();
+        if(clientData.phone !== phone) { showAppAlert("Хатогӣ", "Рақами телефон мувофиқат намекунад!"); return; }
+        
+        localStorage.setItem('hayot_client_name', name);
+        localStorage.setItem('hayot_client_phone', clientData.phone);
+        localStorage.setItem('hayot_client_fc', clientData.clientCode);
+        
+        document.getElementById('regScreen').classList.add('hidden');
+        document.getElementById('pinScreen').classList.remove('hidden');
+        document.getElementById('txtPinTitle').textContent = currentLang === 'tg' ? "PIN-коди 4-рақамӣ эҷод кунед" : "Создайте 4-значный PIN-код";
+        isCreatingPin = true;
+    } catch (error) {
+        showAppAlert("Хато", error.message);
+    }
+}
+
+let isCreatingPin = false;
+let enteredPin = "";
+
+function pressKey(num) {
+    if (enteredPin.length < 4) {
+        enteredPin += num;
+        updateDots();
+        if (enteredPin.length === 4) setTimeout(checkPinAction, 300);
+    }
+}
+
+function updateDots() {
+    for (let i = 1; i <= 4; i++) {
+        let dot = document.getElementById(`d${i}`);
+        if (i <= enteredPin.length) dot.classList.add('active');
+        else dot.classList.remove('active');
+    }
+}
+
+function clearPin() { enteredPin = ""; updateDots(); }
+
+function checkPinAction() {
+    if (isCreatingPin) {
+        localStorage.setItem('hayot_client_pin', enteredPin);
+        isCreatingPin = false;
+        showAppAlert("Муваффақ", "PIN-код эҷод шуд!", false, () => { enterMainApp(); });
+    } else {
+        const savedPin = localStorage.getItem('hayot_client_pin');
+        if (enteredPin === savedPin) { enterMainApp(); }
+        else { clearPin(); showAppAlert("Хатогӣ", "PIN-коди нодуруст аст!"); }
+    }
+}
+
+async function enterMainApp() {
+    const name = localStorage.getItem('hayot_client_name') || "Абдулло";
+    const phone = localStorage.getItem('hayot_client_phone') || "900000000";
+    const fc = localStorage.getItem('hayot_client_fc') || "FC0000000";
+    
+    document.getElementById('headerUserName').textContent = name;
+    document.getElementById('profileFullName').textContent = name;
+    document.getElementById('profilePhone').textContent = phone;
+    document.getElementById('displayFcId').textContent = fc;
+    document.getElementById('displayPhone').textContent = phone;
+    document.getElementById('qrCodeText').textContent = fc;
+    document.getElementById('inputEditName').value = name;
+    document.getElementById('inputEditPhone').value = phone;
+
+    document.getElementById('pinScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    await fetchClientTracks(phone);
+}
+
+function saveNewPin() {
+    const newPin = document.getElementById('newPinInput').value.trim();
+    if(newPin.length !== 4 || isNaN(newPin)) { showAppAlert("Хатогӣ", "PIN-коди 4-рақамӣ ворид кунед!"); return; }
+    localStorage.setItem('hayot_client_pin', newPin);
+    showAppAlert("Муваффақ", "PIN-код иваз шуд!");
+    closeSubPage('changePinSubPage');
+}
+
+async function fetchClientTracks(phone) {
+    try {
+        const snapshot = await db.collection("branches").doc(BRANCH_ID).collection("tracks").where("phone", "==", phone).get();
+        clientTracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) { console.error(error); }
+}
+
+function initPullToRefresh() {
+    const container = document.getElementById('appBodyScroll');
+    const spinner = document.getElementById('refreshIndicator');
+    let startY = 0, pulling = false;
+    container.addEventListener('touchstart', (e) => { if (container.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; } });
+    container.addEventListener('touchmove', (e) => { if (pulling && e.touches[0].clientY - startY > 70) spinner.style.display = 'block'; });
+    container.addEventListener('touchend', async () => {
+        if (pulling && spinner.style.display === 'block') {
+            await fetchClientTracks(localStorage.getItem('hayot_client_phone') || "");
+            setTimeout(() => { spinner.style.display = 'none'; }, 600);
+        }
+        pulling = false;
+    });
+}
+
+async function addNewClientTrack() {
+    const trackCode = document.getElementById('newTrackCodeInput').value.trim();
+    const cargoName = document.getElementById('newCargoNameInput').value.trim();
+    if(!trackCode) { showAppAlert("Хатогӣ", "Трек-кодро ворид кунед!"); return; }
+    try {
+        const id = "TRACK_" + Date.now();
+        await db.collection("branches").doc(BRANCH_ID).collection("tracks").doc(id).set({
+            trackCode: id, track: trackCode, cargoName: cargoName || "Бор бе ном",
+            client: localStorage.getItem('hayot_client_name'), phone: localStorage.getItem('hayot_client_phone'),
+            branch: "Душанбе", weight: 1.5, volume: 0, price: 25, status: "Ожидание",
+            statusHistory: { "Ожидание": new Date().toLocaleString() }, dateTime: new Date().toLocaleString()
+        });
+        showAppAlert("Муваффақ", "Трек илова шуд!");
+        closeSubPage('addTrackSubPage');
+        await fetchClientTracks(localStorage.getItem('hayot_client_phone'));
+    } catch (e) { showAppAlert("Хато", e.message); }
+}
+
+function searchClientTrack() {
+    const query = document.getElementById('clientSearchInput').value.trim().toLowerCase();
+    const resultArea = document.getElementById('searchResultArea');
+    if(!query) { resultArea.innerHTML = ""; return; }
+    const found = clientTracks.filter(t => String(t.track).toLowerCase().includes(query));
+    resultArea.innerHTML = found.length === 0 ? `<div class="address-box" style="text-align:center; color:#ef4444;">Ёфт нашуд</div>` :
+        found.map(t => `<div class="address-box" onclick='openTrackTimeline(${JSON.stringify(t)})' style="cursor:pointer; border:1px solid var(--primary);"><b>${t.track}</b> - <span style="color:var(--primary);">${t.status}</span></div>`).join('');
+}
+
+function openTrackTimeline(trackObj) {
+    const contentBox = document.getElementById('statusModalContent');
+    document.getElementById('modalStatusTitle').textContent = "Трек: " + trackObj.track;
+
+    const allStatuses = [
+        { name: "Ожидание", desc: "Мы ожидаем ваш груз на складе в Китае" },
+        { name: "Груз принят", desc: "Ваш груз принят на нашем складе в Китае и готовится к отправке" },
+        { name: "В Пути", desc: "Ваш груз в пути из Китая в Таджикистан." },
+        { name: "В сортировочном центре", desc: "Ваш груз готовится к выдаче" },
+        { name: "Готов к выдаче", desc: "Ваш груз в пункте выдачи и готов к получению" },
+        { name: "Доставляется курьером", desc: "Товар доставляется курьером по вашему адресу" },
+        { name: "Груз получен", desc: "Груз успешно выдан получателю. Спасибо!" }
+    ];
+
+    let currentIndex = allStatuses.findIndex(s => s.name === (trackObj.status || "Ожидание"));
+    if(currentIndex === -1) currentIndex = 0;
+    const history = trackObj.statusHistory || {};
+
+    let timelineHtml = `<div class="timeline-card"><div class="track-header-row"><span class="track-title-text">${trackObj.track}</span><span class="track-badge">${trackObj.status || 'Ожидание'}</span></div><div class="cargo-name-box"><i class="fa-solid fa-box" style="color:var(--primary); margin-right:6px;"></i> ${trackObj.cargoName || 'Бор бе ном'}<br><span style="font-size:11px; color:var(--muted); font-weight:normal;">Вазн: ${trackObj.weight || 0} кг | Нарх: ${trackObj.price || 0} сомонӣ</span></div><div class="timeline">`;
+
+    allStatuses.forEach((st, idx) => {
+        let isActive = idx <= currentIndex;
+        let statusTime = history[st.name] || (isActive ? (trackObj.dateTime || "") : "");
+        timelineHtml += `<div class="timeline-item ${isActive ? 'active' : ''}"><div class="timeline-dot"><i class="fa-solid fa-check"></i></div><div class="timeline-title">${st.name}</div><div class="timeline-desc">${st.desc}</div>${(isActive && statusTime) ? `<div class="timeline-date"><i class="fa-regular fa-clock"></i> ${statusTime}</div>` : ''}</div>`;
+    });
+
+    timelineHtml += `</div></div>`;
+    contentBox.innerHTML = timelineHtml;
+    openSubPage('statusDetailModal');
+}
+
+async function openStatusDetail(statusName) {
+    document.getElementById('modalStatusTitle').textContent = statusName;
+    const contentBox = document.getElementById('statusModalContent');
+    const phone = localStorage.getItem('hayot_client_phone') || "";
+    await fetchClientTracks(phone);
+    const filtered = clientTracks.filter(t => (t.status || 'Ожидание') === statusName);
+
+    contentBox.innerHTML = filtered.length === 0 ? `<div class="empty-box"><i class="fa-solid fa-box-open"></i><h4>Дар ин статус бор нест</h4></div>` :
+        filtered.map(t => `<div class="address-box" onclick='openTrackTimeline(${JSON.stringify(t)})' style="cursor:pointer;"><div class="address-row"><span>Трек:</span> <b>${t.track}</b></div><div class="address-row"><span>Бор:</span> <b style="color:var(--primary);">${t.cargoName}</b></div><div class="address-row"><span>Вазн ва нарх:</span> <b>${t.weight || 0} кг / ${t.price || 0} сомонӣ</b></div></div>`).join('');
+    openSubPage('statusDetailModal');
+}
+
+function logout() {
+    showAppAlert("Баромадан", "Баромадан аз аккаунт?", true, (isOk) => { if(isOk) { localStorage.clear(); location.reload(); } });
+}
+
+function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+}
+
+function openSubPage(id) { document.getElementById(id).classList.add('show'); }
+function closeSubPage(id) { document.getElementById(id).classList.remove('show'); }
+
+function copyAddress() {
+    navigator.clipboard.writeText(`ID: ${localStorage.getItem('hayot_client_fc')}, Phone: ${localStorage.getItem('hayot_client_phone')}`);
+    showAppAlert("Муваффақ", "Адрес скопирован!");
+}
+</script>
+
+</body>
+</html>
